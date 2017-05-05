@@ -1,9 +1,6 @@
-sentibot
-=====
+# MCS_Sentibot
+A slack bot reacting to messages expressing emotions.
 
-An OTP application
-
-Build
------
-
-    $ rebar3 compile
+## Deployment
+1. `$ rebar3 compile`
+2. You're done!
