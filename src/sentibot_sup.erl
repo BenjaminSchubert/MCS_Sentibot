@@ -4,7 +4,6 @@
 %%%-------------------------------------------------------------------
 
 -module(sentibot_sup).
-
 -behaviour(supervisor).
 
 %% API
@@ -13,23 +12,35 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(SERVER, ?MODULE).
 
 %%====================================================================
 %% API functions
 %%====================================================================
 
+-spec start_link() -> supervisor:startlink_ret().
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+  supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
 
 %%====================================================================
 %% Supervisor callbacks
 %%====================================================================
 
-%% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
-init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+-spec init(Args :: term()) -> {ok, {supervisor:sup_flags(), [supervisor:child_spec()]}}.
+init(_Args) ->
+  application:ensure_all_started(gun),
+  application:ensure_all_started(slacker),
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+  SupFlags = #{strategy => one_for_one, intensity => 0, period => 5},
+
+  SentibotModule = sb_statem,
+
+  SentibotChild = {
+    SentibotModule,
+    {SentibotModule, start_link, []},
+    permanent,
+    2000,
+    worker,
+    [SentibotModule]
+  },
+  {ok, {SupFlags, [SentibotChild]}}.
