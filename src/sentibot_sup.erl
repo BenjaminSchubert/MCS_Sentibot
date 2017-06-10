@@ -1,6 +1,8 @@
 %%%-------------------------------------------------------------------
-%% @doc sentibot top level supervisor.
-%% @end
+%%% @author Benjamin Schubert, Basile Vu, Ioannis Noukakis and Sarra Berich
+%%% @doc
+%%% Sentibot Top Level supervisor
+%%% @end
 %%%-------------------------------------------------------------------
 
 -module(sentibot_sup).

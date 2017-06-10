@@ -17,3 +17,5 @@ rebar3.crashdump
 
 *.iml
 .idea
+
+rebar3

@@ -1,0 +1,10 @@
+_build/
+.idea/
+log/
+
+.dockerignore
+.gitignore
+README.md
+rebar.lock
+rebar3
+*.iml

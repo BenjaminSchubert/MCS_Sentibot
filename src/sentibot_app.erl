@@ -1,6 +1,8 @@
 %%%-------------------------------------------------------------------
-%% @doc sentibot public API
-%% @end
+%%% @author Benjamin Schubert, Basile Vu, Ioannis Noukakis and Sarra Berich
+%%% @doc
+%%% Sentibot Public API
+%%% @end
 %%%-------------------------------------------------------------------
 
 -module(sentibot_app).
