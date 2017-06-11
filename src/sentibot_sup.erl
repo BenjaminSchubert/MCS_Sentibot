@@ -35,14 +35,10 @@ init(_Args) ->
 
   SupFlags = #{strategy => one_for_one, intensity => 0, period => 5},
 
-  SentibotModule = sb_statem,
+  {ok, {SupFlags, [child(sb_statem), child(sb_bot_intelligence)]}}.
 
-  SentibotChild = {
-    SentibotModule,
-    {SentibotModule, start_link, []},
-    permanent,
-    2000,
-    worker,
-    [SentibotModule]
-  },
-  {ok, {SupFlags, [SentibotChild]}}.
+
+
+%% private API
+child(Module) ->
+  {Module, {Module, start_link, []}, permanent, 2000, worker, [Module]}.
