@@ -125,7 +125,7 @@ handle_command([<<"delete">>, IndexString], Channel, User, _BotName) ->
     Index ->
       case sb_sentiment_analysis:delete(Index) of
         {ok, {R, S}} -> send_message(Channel, <<R/binary, " -> ", S/binary, "has been deleted">>);
-        out_of_bound -> send_message(Channel, <<(48 + Index), " is out of bound.">>)
+        out_of_bound -> send_message(Channel, <<"<@", User/binary, "> ", (48 + Index), " is out of bound.">>)
       end
   catch
     error:badarg -> send_message(Channel, <<"<@", User/binary, ">, This is not an integer, I can't delete at this index !">>)
@@ -138,6 +138,22 @@ handle_command([<<"dump">>], Channel, _User, _BotName) ->
     Rules
   ));
 
+handle_command([<<"move">>, OldIndexString, NewIndexString], Channel, User, _BotName) ->
+  try binary_to_integer(OldIndexString) of
+    Index1 ->
+      try binary_to_integer(NewIndexString) of
+        Index2 ->
+          case sb_sentiment_analysis:move(Index1, Index2) of
+            ok -> send_message(Channel, <<"Moved rule from index ", (48 + Index1), " to index ", (48 + Index2), ".">>);
+            {out_of_bound, Index} -> send_message_to(Channel, User, <<(48 + Index), " is out of bound">>)
+          end
+      catch
+        error:badarg -> send_invalid_integer(Channel, User, NewIndexString)
+      end
+  catch
+    error:badarg -> send_invalid_integer(Channel, User, OldIndexString)
+  end;
+
 handle_command([<<"save">>], Channel, _User, _BotName) ->
   ok = sb_sentiment_analysis:save(),
   send_message(Channel, <<"Rules successfully saved">>);
@@ -148,6 +164,18 @@ handle_command(_List, Channel, User, BotName) ->
 %%-----------------------------------------------------------------------------
 %% RESPONSES to Slack
 %%-----------------------------------------------------------------------------
+send_invalid_integer(Channel, User, Value) -> send_message_to(
+  Channel,
+  User,
+  <<"'", Value/binary, "' is not a valid integer">>
+).
+
+send_message_to(Channel, User, Message) -> send_message(
+  Channel,
+  <<"Sorry <@", User/binary, "> ", Message/binary>>
+).
+
+
 send_unknown_command(Channel, User, BotName) -> send_message(
   Channel,
   [
@@ -179,8 +207,6 @@ send_help(Channel, BotName) -> send_message(
 %%-----------------------------------------------------------------------------
 %% HELPERS
 %%-----------------------------------------------------------------------------
-help_fm(Name, Msg) -> list_to_binary([<<"\n\t">>, Name, <<"\t">>, Msg]).
-
 send_message(Channel, [_Head | _Tail] = List) ->
   send_message(Channel, list_to_binary(List));
 

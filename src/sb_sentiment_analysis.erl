@@ -14,7 +14,7 @@
 }).
 
 %% public api
--export([analyze/2, add/1, delete/1, dump/0, save/0]).
+-export([analyze/2, add/1, delete/1, dump/0, move/2, save/0]).
 
 %% otp api
 -export([start_link/0]).
@@ -34,6 +34,8 @@ delete(Index) -> gen_server:call(?MODULE, {delete, Index}).
 dump() -> gen_server:call(?MODULE, dump).
 
 save() -> gen_server:call(?MODULE, save).
+
+move(OldIndex, NewIndex) -> gen_server:call(?MODULE, {move, {OldIndex, NewIndex}}).
 
 
 %%=============================================================================
@@ -58,7 +60,7 @@ handle_call(save, _From, #state{sentiments = Sentiments} = State) ->
   {reply, ok, State};
 
 handle_call({delete, Index}, _From, #state{sentiments = Sentiments} = State) ->
-  case delete_sentiment(Index, Sentiments) of
+  case sb_list:remove_element(Index, Sentiments) of
     out_of_bound -> {reply, out_of_bound, State};
     {ok, NewSentiments, RemovedSentiment} -> {reply, {ok, RemovedSentiment}, State#state{sentiments = NewSentiments}}
   end;
@@ -70,6 +72,13 @@ handle_call(dump, _From, #state{sentiments = Sentiments} = State) ->
 
 handle_call({add, {Regex, Sentiment}}, _From, #state{sentiments = Sentiments} = State) ->
   {reply, {ok, Sentiment}, State#state{sentiments = [{Regex, Sentiment} | Sentiments]}};
+
+
+handle_call({move, {OldIndex, NewIndex}}, _From, #state{sentiments = Sentiments} = State) ->
+  case move_sentiment(OldIndex, NewIndex, Sentiments) of
+    {out_of_bound, Index} -> {reply, {out_of_bound, Index}, State};
+    {ok, NewSentiments} -> {reply, ok, State#state{sentiments = NewSentiments}}
+  end;
 
 
 handle_call({analyze, Message, User}, _From, #state{sentiments = Sentiments} = State) ->
@@ -114,14 +123,8 @@ extract_sentiment(Message, [{Regexp, Sentiment} | Tail]) ->
   end.
 
 
-delete_sentiment(Index, Sentiments) ->
-  case Index of
-    _ when Index < 0 -> out_of_bound;
-    _ -> delete_sentiment(Index, Sentiments, [])
+move_sentiment(OldIndex, NewIndex, Sentiments) ->
+  case sb_list:remove_element(OldIndex, Sentiments) of
+    out_of_bound -> {out_of_bound, OldIndex};
+    {ok, List, Element} -> sb_list:insert_element(Element, NewIndex, List)
   end.
-
-delete_sentiment(_Index, [], _Acc) -> out_of_bound;
-
-delete_sentiment(0, [Head | Tail], Acc) -> {ok, lists:reverse(Acc) ++ Tail, Head};
-
-delete_sentiment(Index, [Head | Tail], Acc) -> delete_sentiment(Index - 1, Tail, [Head | Acc]).
