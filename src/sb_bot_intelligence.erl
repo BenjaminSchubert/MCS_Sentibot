@@ -19,7 +19,6 @@
 
 
 -record(state, {
-  token,
   botId,
   botIdPattern,
   botName
@@ -43,11 +42,11 @@ start_link() ->
 %%=============================================================================
 
 init(_Settings) ->
-  {ok, 200, _Headers, ResponseList} = slacker_auth:test("xoxb-195719487908-v64wxj7ZH0j0rlT3zNf2zIn8"),
+  {ok, 200, _Headers, ResponseList} = slacker_auth:test(sb_config:get_slack_token()),
   Response = maps:from_list(ResponseList),
   {ok, BotId} = maps:find(<<"user_id">>, Response),
   {ok, BotName} = maps:find(<<"user">>, Response),
-  State = #state{token = "xoxb-195719487908-v64wxj7ZH0j0rlT3zNf2zIn8", botIdPattern = binary:compile_pattern(BotId), botId = BotId, botName = BotName},
+  State = #state{botIdPattern = binary:compile_pattern(BotId), botId = BotId, botName = BotName},
 
   {ok, State}.
 
@@ -84,17 +83,17 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 %%-----------------------------------------------------------------------------
 %% Types of available messages to treat
 %%-----------------------------------------------------------------------------
-handle_command({Text, Channel, User}, #state{botId = BotID, token = Token, botName = BotName} = State) ->
+handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName}) ->
   {ok, Regex} = re:compile(list_to_binary([<<"^<@">>, BotID, <<"> (?<Command>.*)">>])),
   Result = re:run(Text, Regex, [{capture, all_names, binary}]),
 
   case Result of
     {match, [Command]} ->
       case Command of
-        <<"help">> -> send_help(Channel, Token, BotName);
-        _Else -> send_unknown_command(Channel, User, Token, BotName)
+        <<"help">> -> send_help(Channel, BotName);
+        _Else -> send_unknown_command(Channel, User, BotName)
       end;
-    _Else -> send_unknown_command(Channel, User, Token, BotName)
+    _Else -> send_unknown_command(Channel, User, BotName)
   end.
 
 
@@ -105,9 +104,9 @@ handle_message({Message, Channel, User}, _State) ->
 %%-----------------------------------------------------------------------------
 %% RESPONSES to Slack
 %%-----------------------------------------------------------------------------
-send_unknown_command(Channel, User, Token, BotName) ->
+send_unknown_command(Channel, User, BotName) ->
   slacker_chat:post_message(
-    Token,
+    sb_config:get_slack_token(),
     Channel,
     list_to_binary([
       <<"Sorry <@">>,
@@ -121,9 +120,9 @@ send_unknown_command(Channel, User, Token, BotName) ->
     [{username, BotName}]
   ).
 
-send_help(Channel, Token, BotName) ->
+send_help(Channel, BotName) ->
   slacker_chat:post_message(
-    Token,
+    sb_config:get_slack_token(),
     Channel,
     list_to_binary([
       <<"@">>,

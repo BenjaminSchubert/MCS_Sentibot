@@ -19,7 +19,6 @@
 
 -record(state, {
   httpPid,
-  token,
   wsPid,
   wsUrl
 }).
@@ -43,10 +42,8 @@ callback_mode() ->state_functions.
 
 
 init(_Settings) ->
-  %% FIXME: externalize
-  State = #state{token = "xoxb-195719487908-v64wxj7ZH0j0rlT3zNf2zIn8"},
   gen_statem:cast(self(), connect),
-  {ok, disconnected, State}.
+  {ok, disconnected, #state{}}.
 
 
 %%====================================================================
@@ -67,8 +64,8 @@ get_websocket_url(state_timeout, Message, #state{httpPid = HttpPid}) ->
 
 
 %% @doc The connection to Slack's servers was successful. Get a websocket url.
-get_websocket_url(info, {gun_up, HttpPid, _Method}, #state{httpPid = HttpPid, token = Token} = State) ->
-  gun:post(HttpPid, "/api/rtm.connect?token=" ++ Token, []),
+get_websocket_url(info, {gun_up, HttpPid, _Method}, #state{httpPid = HttpPid} = State) ->
+  gun:post(HttpPid, "/api/rtm.connect?token=" ++ sb_config:get_slack_token(), []),
   {keep_state, State};
 
 

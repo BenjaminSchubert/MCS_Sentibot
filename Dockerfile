@@ -7,6 +7,6 @@ ADD . /srv/sentibot
 
 WORKDIR /srv/sentibot
 
-RUN rebar3 release
+RUN rebar3 release -d false
 
 CMD ["/srv/sentibot/_build/default/rel/sentibot/bin/sentibot", "foreground"]
