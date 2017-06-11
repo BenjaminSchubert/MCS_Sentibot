@@ -20,3 +20,4 @@ rebar3.crashdump
 
 rebar3
 config/sys.config
+sentiments.config

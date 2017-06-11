@@ -124,6 +124,9 @@ handle_sentiments(CommandList, Channel, User, BotName) ->
     [<<"add">>, Regex, Sentiment] ->
       {ok, Sentiment} = sb_sentiment_analysis:add({Regex, Sentiment}),
       send_message(Channel, [<<"New sentiment recognition added for ">>, Sentiment]);
+    [<<"save">>] ->
+      ok = sb_sentiment_analysis:save(),
+      send_message(Channel, [<<"Rules successfully saved">>]);
     _Else -> send_unknown_command(Channel, User, BotName)
   end.
 
@@ -152,7 +155,8 @@ send_help(Channel, BotName) -> send_message(
     <<" command <parameters>\n\n Available Commands:">>,
     help_fm(<<"help">>, <<"Display this help message">>),
     help_fm(<<"sentiments">>, <<"">>),
-    help_sub_fm(<<"insert [regex] [sentiment]">>, <<"Add a new sentiment recognition at the end of the list">>)
+    help_sub_fm(<<"insert [regex] [sentiment]">>, <<"Add a new sentiment recognition at the end of the list">>),
+    help_sub_fm(<<"save">>, <<"Save the current rules">>)
   ]
 ).
 
@@ -180,9 +184,12 @@ join_on_quotation_mark(L) -> join_on_quotation_mark(L, []).
 join_on_quotation_mark([], Acc) -> lists:reverse(Acc);
 
 join_on_quotation_mark([<<"\"", Head/binary>> | Tail], Acc) ->
-  consume_until_quotation_mark(Tail, Acc, [Head]);
+  case binary:last(Head) of
+    $" -> join_on_quotation_mark(Tail, [Head | Acc]);
+    _Else ->  consume_until_quotation_mark(Tail, Acc, [Head])
+  end;
 
-join_on_quotation_mark([H | T], Acc) -> join_on_quotation_mark(T, [H | Acc]).
+join_on_quotation_mark([Head | Tail], Acc) -> join_on_quotation_mark(Tail, [Head | Acc]).
 
 consume_until_quotation_mark([], _Acc, _Value) -> error;
 

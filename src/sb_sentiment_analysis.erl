@@ -14,13 +14,13 @@
 }).
 
 %% public api
--export([analyze/2]).
+-export([analyze/2, add/1, save/0]).
 
 %% otp api
 -export([start_link/0]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3, add/1]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %%=============================================================================
 %% Public API
@@ -31,6 +31,10 @@ analyze(Message, User) ->
 
 add(Message) ->
   gen_server:call(?MODULE, {add, Message}).
+
+
+save() ->
+  gen_server:call(?MODULE, save).
 
 
 %%=============================================================================
@@ -48,6 +52,11 @@ start_link() ->
 init(_Settings) ->
   {ok, Sentiments} = load_sentiments(),
   {ok, #state{sentiments = Sentiments}}.
+
+
+handle_call(save, _From, #state{sentiments = Sentiments} = State) ->
+  dump_sentiments(Sentiments),
+  {reply, ok, State};
 
 
 handle_call({add, {Regex, Sentiment}}, _From, #state{sentiments = Sentiments} = State) ->
@@ -75,8 +84,15 @@ load_sentiments() ->
   Result = file:consult(sb_config:get_sentiment_file()),
 
   case Result of
-    {error, enoent} -> {ok, []}
+    {error, enoent} -> {ok, []};
+    {ok, Sentiments} -> {ok, Sentiments}
   end.
+
+
+dump_sentiments(Sentiments) -> file:write_file(
+  sb_config:get_sentiment_file(),
+  lists:map(fun(Term) -> io_lib:format("~tp.~n", [Term]) end, Sentiments)
+).
 
 
 extract_sentiment(_Message, []) ->
