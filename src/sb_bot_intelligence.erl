@@ -21,7 +21,8 @@
 -record(state, {
   botId,
   botIdPattern,
-  botName
+  botName,
+  stateOfMind
 }).
 
 
@@ -51,7 +52,7 @@ init(_Settings) ->
   Response = maps:from_list(ResponseList),
   {ok, BotId} = maps:find(<<"user_id">>, Response),
   {ok, BotName} = maps:find(<<"user">>, Response),
-  State = #state{botIdPattern = binary:compile_pattern(BotId), botId = BotId, botName = BotName},
+  State = #state{botIdPattern = binary:compile_pattern(BotId), botId = BotId, botName = BotName, stateOfMind = maps:new()},
 
   {ok, State}.
 
@@ -60,7 +61,7 @@ handle_cast({message, Message}, #state{botIdPattern = Pattern} = State) ->
   Bot = maps:find(bot_id, Message),
 
   case Bot of
-    {ok, _} -> ok;
+    {ok, _} -> {noreply, State};
     error ->
       {ok, Text} = maps:find(text, Message),
       {ok, Channel} = maps:find(channel, Message),
@@ -68,12 +69,13 @@ handle_cast({message, Message}, #state{botIdPattern = Pattern} = State) ->
 
       Command = binary:match(Text, Pattern),
       case Command of
-        nomatch -> handle_message({Text, Channel, User}, State);
-        _Else -> handle_command({Text, Channel, User}, State)
+        nomatch ->
+          {noreply, handle_message({Text, Channel, User}, State)};
+        _Else ->
+          handle_command({Text, Channel, User}, State),
+          {noreply, State}
       end
-  end,
-
-  {noreply, State}.
+  end.
 
 
 handle_call(_Request, _From, State) -> {noreply, State}.
@@ -89,25 +91,31 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 %%-----------------------------------------------------------------------------
 %% Types of available messages to treat
 %%-----------------------------------------------------------------------------
-handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName}) ->
+handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName, stateOfMind = StateOfMind}) ->
   {ok, Regex} = re:compile(<<"^<@", BotID/binary, "> (?<Command>.+)">>),
 
   case re:run(Text, Regex, [{capture, all_names, binary}]) of
     {match, [Command]} ->
       case split_on_space(Command) of
         error -> send_message(Channel, <<"Sorry <@", User/binary, ">, I was unable to parse your command.">>);
+        [<<"state">>] -> show_state(Channel, StateOfMind);
         List -> handle_command(List, Channel, User, BotName)
       end;
     _Else -> send_unknown_command(Channel, User, BotName)
   end.
 
 
-handle_message({Message, Channel, User}, _State) ->
+handle_message({Message, Channel, User}, #state{stateOfMind = StateOfMind} = State) ->
   Result = sb_sentiment_analysis:analyze(Message, User),
   case Result of
-    {ok, Sentiment} -> send_message(Channel, Sentiment);
-    notfound -> ok
+    {ok, Sentiment} ->
+      NewStateOfMind = add_to_channel_state(Channel, {User, Sentiment}, StateOfMind),
+      send_message(Channel, <<"<@", User/binary, "> is", Sentiment/binary, ".">>),
+      State#state{stateOfMind = NewStateOfMind};
+    notfound -> State
   end.
+
+
 
 
 %%-----------------------------------------------------------------------------
@@ -175,6 +183,17 @@ handle_command([<<"save">>], Channel, _User, _BotName) ->
 handle_command(_List, Channel, User, BotName) ->
   send_unknown_command(Channel, User, BotName).
 
+
+show_state(Channel, StateOfMind) ->
+  case maps:find(Channel, StateOfMind) of
+    error -> send_message(Channel, <<"Unfortunately, Only Psychopats are in this Channel. Nobody has a state of mind">>);
+    {ok, Value} ->
+      send_message(Channel, lists:map(
+        fun({User, Sentiment}) -> <<"<@", User/binary, "> is ", Sentiment/binary, ".\n">> end,
+        maps:to_list(Value)
+      ))
+  end.
+
 %%-----------------------------------------------------------------------------
 %% RESPONSES to Slack
 %%-----------------------------------------------------------------------------
@@ -215,6 +234,7 @@ send_help(Channel, BotName) -> send_message(
     "\n\tinsert INDEX REGEX SENTIMENT   Add a new sentiment recognition at the given INDEX",
     "\n\tmove OLD_INDEX NEW_INDEX       Move the rule from OLD_INDEX to NEW_INDEX",
     "\n\tsave                           Save the current rules",
+    "\n\tstate                          Show the state of mind of peoples in the channel",
     "```"
   >>
 ).
@@ -257,3 +277,11 @@ consume_until_quotation_mark([Head | Tail], Acc, Value) ->
     );
     _Else -> consume_until_quotation_mark(Tail, Acc, [Head, <<" ">> | Value])
   end.
+
+
+add_to_channel_state(Channel, {User, Sentiment}, StateOfMind) ->
+  ChannelMap = case maps:find(Channel, StateOfMind) of
+    error -> maps:from_list([{User, Sentiment}]);
+    {ok, Value} -> maps:put(User, Sentiment, Value)
+  end,
+  maps:put(Channel, ChannelMap, StateOfMind).

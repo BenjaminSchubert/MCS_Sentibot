@@ -88,7 +88,7 @@ handle_call({move, {OldIndex, NewIndex}}, _From, #state{sentiments = Sentiments}
 handle_call({analyze, Message, User}, _From, #state{sentiments = Sentiments} = State) ->
   case extract_sentiment(Message, Sentiments) of
     notfound -> {reply, notfound, State};
-    {match, Sentiment} -> {reply, {ok, [<<"<@">>, User, <<"> is ">>, Sentiment, <<".">>]}, State}
+    {match, Sentiment} -> {reply, {ok, Sentiment}, State}
   end.
 
 
