@@ -35,8 +35,11 @@ init(_Args) ->
 
   SupFlags = #{strategy => one_for_one, intensity => 0, period => 5},
 
-  {ok, {SupFlags, [child(sb_statem), child(sb_bot_intelligence)]}}.
-
+  {ok, {SupFlags, [
+    child(sb_sentiment_analysis),
+    child(sb_bot_intelligence),
+    child(sb_statem)
+  ]}}.
 
 
 %% private API
