@@ -96,33 +96,7 @@ handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName}) 
     {match, [Command]} ->
       case split_on_space(Command) of
         error -> send_message(Channel, <<"Sorry <@", User/binary, ">, I was unable to parse your command.">>);
-        List ->
-          case List of
-            [<<"help">>] -> send_help(Channel, BotName);
-            [<<"add">>, Tail, Sentiment] ->
-              {ok, Sentiment} = sb_sentiment_analysis:add({Tail, Sentiment}),
-              send_message(Channel, <<"New sentiment recognition added for ", Sentiment/binary>>);
-            [<<"delete">>, IndexString] ->
-              try binary_to_integer(IndexString) of
-                Index ->
-                  case sb_sentiment_analysis:delete(Index) of
-                    {ok, {R, S}} -> send_message(Channel, <<R/binary, " -> ", S/binary, "has been deleted">>);
-                    out_of_bound -> send_message(Channel, <<(48 + Index), " is out of bound.">>)
-                  end
-              catch
-                error:badarg -> send_message(Channel, <<"<@", User/binary, ">, This is not an integer, I can't delete at this index !">>)
-              end;
-            [<<"dump">>] ->
-              {ok, Rules} = sb_sentiment_analysis:dump(),
-              send_message(Channel, sb_utils:mapWithIndex(
-                fun({R, Sentiment}, Index) -> <<(48 + Index), ": `", R/binary, "` -> ", Sentiment/binary, "\n">> end,
-                Rules
-              ));
-            [<<"save">>] ->
-              ok = sb_sentiment_analysis:save(),
-              send_message(Channel, <<"Rules successfully saved">>);
-            _Else -> send_unknown_command(Channel, User, BotName)
-          end
+        List -> handle_command(List, Channel, User, BotName)
       end;
     _Else -> send_unknown_command(Channel, User, BotName)
   end.
@@ -135,6 +109,41 @@ handle_message({Message, Channel, User}, _State) ->
     notfound -> ok
   end.
 
+
+%%-----------------------------------------------------------------------------
+%% COMMAND HANDLERS
+%%-----------------------------------------------------------------------------
+
+handle_command([<<"help">>], Channel, _User, BotName) -> send_help(Channel, BotName);
+
+handle_command([<<"add">>, Tail, Sentiment], Channel, _User, _BotName) ->
+  {ok, Sentiment} = sb_sentiment_analysis:add({Tail, Sentiment}),
+  send_message(Channel, <<"New sentiment recognition added for ", Sentiment/binary>>);
+
+handle_command([<<"delete">>, IndexString], Channel, User, _BotName) ->
+  try binary_to_integer(IndexString) of
+    Index ->
+      case sb_sentiment_analysis:delete(Index) of
+        {ok, {R, S}} -> send_message(Channel, <<R/binary, " -> ", S/binary, "has been deleted">>);
+        out_of_bound -> send_message(Channel, <<(48 + Index), " is out of bound.">>)
+      end
+  catch
+    error:badarg -> send_message(Channel, <<"<@", User/binary, ">, This is not an integer, I can't delete at this index !">>)
+  end;
+
+handle_command([<<"dump">>], Channel, _User, _BotName) ->
+  {ok, Rules} = sb_sentiment_analysis:dump(),
+  send_message(Channel, sb_utils:mapWithIndex(
+    fun({R, Sentiment}, Index) -> <<(48 + Index), ". `", R/binary, "` -> ", Sentiment/binary, "\n">> end,
+    Rules
+  ));
+
+handle_command([<<"save">>], Channel, _User, _BotName) ->
+  ok = sb_sentiment_analysis:save(),
+  send_message(Channel, <<"Rules successfully saved">>);
+
+handle_command(_List, Channel, User, BotName) ->
+  send_unknown_command(Channel, User, BotName).
 
 %%-----------------------------------------------------------------------------
 %% RESPONSES to Slack
@@ -154,21 +163,23 @@ send_unknown_command(Channel, User, BotName) -> send_message(
 
 send_help(Channel, BotName) -> send_message(
   Channel,
-  [
-    <<"@">>,
-    BotName,
-    <<" command <parameters>\n\n Available Commands:">>,
-    help_fm(<<"*help*">>, <<"Display this help message">>),
-    help_fm(<<"*insert* _regex_ _sentiment_">>, <<"Add a new sentiment recognition at the end of the list">>),
-    help_fm(<<"*save*">>, <<"Save the current rules">>)
-  ]
+  <<
+    "```@", BotName/binary, " COMMAND [PARAMETERS]...",
+    "\n\nAvailable Commands:",
+    "\n\thelp                     Display this help message",
+    "\n\tdelete INDEX             Delete the rule at the given index",
+    "\n\tdump                     Dump the current rules",
+    "\n\tinsert REGEX SENTIMENT   Add a new sentiment recognition at the end of the list",
+    "\n\tsave                     Save the current rules",
+    "```"
+  >>
 ).
 
 
 %%-----------------------------------------------------------------------------
 %% HELPERS
 %%-----------------------------------------------------------------------------
-help_fm(Name, Msg) -> list_to_binary([<<"\n\t">>, Name, <<"\t\t">>, Msg]).
+help_fm(Name, Msg) -> list_to_binary([<<"\n\t">>, Name, <<"\t">>, Msg]).
 
 send_message(Channel, [_Head | _Tail] = List) ->
   send_message(Channel, list_to_binary(List));
