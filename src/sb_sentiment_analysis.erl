@@ -14,7 +14,7 @@
 }).
 
 %% public api
--export([analyze/2, add/1, delete/1, dump/0, move/2, save/0]).
+-export([analyze/2, add/1, delete/1, dump/0, insert/2, move/2, save/0]).
 
 %% otp api
 -export([start_link/0]).
@@ -27,11 +27,13 @@
 %%=============================================================================
 analyze(Message, User) -> gen_server:call(?MODULE, {analyze, Message, User}).
 
-add(Message) -> gen_server:call(?MODULE, {add, Message}).
+add({Regex, Sentiment}) -> gen_server:call(?MODULE, {add, {Regex, Sentiment}}).
 
 delete(Index) -> gen_server:call(?MODULE, {delete, Index}).
 
 dump() -> gen_server:call(?MODULE, dump).
+
+insert({Regex, Sentiment}, Index) -> gen_server:call(?MODULE, {insert, {Regex, Sentiment, Index}}).
 
 save() -> gen_server:call(?MODULE, save).
 
@@ -65,21 +67,23 @@ handle_call({delete, Index}, _From, #state{sentiments = Sentiments} = State) ->
     {ok, NewSentiments, RemovedSentiment} -> {reply, {ok, RemovedSentiment}, State#state{sentiments = NewSentiments}}
   end;
 
-
 handle_call(dump, _From, #state{sentiments = Sentiments} = State) ->
   {reply, {ok, Sentiments}, State};
-
 
 handle_call({add, {Regex, Sentiment}}, _From, #state{sentiments = Sentiments} = State) ->
   {reply, {ok, Sentiment}, State#state{sentiments = [{Regex, Sentiment} | Sentiments]}};
 
+handle_call({insert, {Regex, Sentiment, Index}}, _From, #state{sentiments = Sentiments} = State) ->
+  case sb_list:insert_element({Regex, Sentiment}, Index, Sentiments) of
+    {out_of_bound} -> {reply, out_of_bound, State};
+    {ok, List} -> {reply, ok, State#state{sentiments = List}}
+  end;
 
 handle_call({move, {OldIndex, NewIndex}}, _From, #state{sentiments = Sentiments} = State) ->
   case move_sentiment(OldIndex, NewIndex, Sentiments) of
     {out_of_bound, Index} -> {reply, {out_of_bound, Index}, State};
     {ok, NewSentiments} -> {reply, ok, State#state{sentiments = NewSentiments}}
   end;
-
 
 handle_call({analyze, Message, User}, _From, #state{sentiments = Sentiments} = State) ->
   case extract_sentiment(Message, Sentiments) of
@@ -113,8 +117,7 @@ dump_sentiments(Sentiments) -> file:write_file(
 ).
 
 
-extract_sentiment(_Message, []) ->
-  notfound;
+extract_sentiment(_Message, []) -> notfound;
 
 extract_sentiment(Message, [{Regexp, Sentiment} | Tail]) ->
   case re:run(Message, Regexp) of
@@ -126,5 +129,9 @@ extract_sentiment(Message, [{Regexp, Sentiment} | Tail]) ->
 move_sentiment(OldIndex, NewIndex, Sentiments) ->
   case sb_list:remove_element(OldIndex, Sentiments) of
     out_of_bound -> {out_of_bound, OldIndex};
-    {ok, List, Element} -> sb_list:insert_element(Element, NewIndex, List)
+    {ok, List, Element} ->
+      case sb_list:insert_element(Element, NewIndex, List) of
+        out_of_bound -> {out_of_bound, NewIndex};
+        Else -> Else
+      end
   end.

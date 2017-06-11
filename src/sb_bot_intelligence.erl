@@ -116,8 +116,8 @@ handle_message({Message, Channel, User}, _State) ->
 
 handle_command([<<"help">>], Channel, _User, BotName) -> send_help(Channel, BotName);
 
-handle_command([<<"add">>, Tail, Sentiment], Channel, _User, _BotName) ->
-  {ok, Sentiment} = sb_sentiment_analysis:add({Tail, Sentiment}),
+handle_command([<<"add">>, Regex, Sentiment], Channel, _User, _BotName) ->
+  {ok, Sentiment} = sb_sentiment_analysis:add({Regex, Sentiment}),
   send_message(Channel, <<"New sentiment recognition added for ", Sentiment/binary>>);
 
 handle_command([<<"delete">>, IndexString], Channel, User, _BotName) ->
@@ -137,6 +137,20 @@ handle_command([<<"dump">>], Channel, _User, _BotName) ->
     fun({R, Sentiment}, Index) -> <<(48 + Index), ". `", R/binary, "` -> ", Sentiment/binary, "\n">> end,
     Rules
   ));
+
+handle_command([<<"insert">>, IndexString, Regex, Sentiment], Channel, User, _BotName) ->
+  try binary_to_integer(IndexString) of
+    Index ->
+      case sb_sentiment_analysis:insert({Regex, Sentiment}, Index) of
+        ok -> send_message(
+          Channel,
+          <<"New sentiment recognition inserted for ", Sentiment/binary, " at index ", (48 + Index)>>
+        );
+        out_of_bound -> send_message_to(Channel, User, <<(48 + Index), " is out of bound">>)
+      end
+  catch
+    error:badarg -> send_invalid_integer(Channel, User, IndexString)
+  end;
 
 handle_command([<<"move">>, OldIndexString, NewIndexString], Channel, User, _BotName) ->
   try binary_to_integer(OldIndexString) of
@@ -194,11 +208,13 @@ send_help(Channel, BotName) -> send_message(
   <<
     "```@", BotName/binary, " COMMAND [PARAMETERS]...",
     "\n\nAvailable Commands:",
-    "\n\thelp                     Display this help message",
-    "\n\tdelete INDEX             Delete the rule at the given index",
-    "\n\tdump                     Dump the current rules",
-    "\n\tinsert REGEX SENTIMENT   Add a new sentiment recognition at the end of the list",
-    "\n\tsave                     Save the current rules",
+    "\n\thelp                           Display this help message",
+    "\n\tadd REGEX SENTIMENT            Add a new sentiment recognition at the begining of the list",
+    "\n\tdelete INDEX                   Delete the rule at the given index",
+    "\n\tdump                           Dump the current rules",
+    "\n\tinsert INDEX REGEX SENTIMENT   Add a new sentiment recognition at the given INDEX",
+    "\n\tmove OLD_INDEX NEW_INDEX       Move the rule from OLD_INDEX to NEW_INDEX",
+    "\n\tsave                           Save the current rules",
     "```"
   >>
 ).
