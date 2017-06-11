@@ -10,10 +10,12 @@
 
 
 %% API
--export([get_slack_token/0]).
+-export([get_slack_token/0, get_sentiment_file/0]).
 
 
 get_slack_token() -> get_value(slack_token).
+
+get_sentiment_file() -> get_value(sentiment_file).
 
 
 %% internal helpers
