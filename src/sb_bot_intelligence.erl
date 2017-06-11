@@ -117,7 +117,7 @@ send_unknown_command(Channel, User, BotName) ->
       BotName,
       <<" help' for more information.">>
     ]),
-    [{username, BotName}]
+    [{username, sb_config:get_bot_name()}]
   ).
 
 send_help(Channel, BotName) ->
@@ -130,7 +130,7 @@ send_help(Channel, BotName) ->
       <<" command <parameters>\n\n Available Commands:">>,
       help_fm(<<"help">>, <<"Display this help message">>)
     ]),
-    [{username, BotName}]).
+    [{username, sb_config:get_bot_name()}]).
 
 
 %%-----------------------------------------------------------------------------
