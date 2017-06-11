@@ -21,7 +21,8 @@
 -record(state, {
   token,
   botId,
-  botIdPattern
+  botIdPattern,
+  botName
 }).
 
 % FIXME: document
@@ -45,7 +46,8 @@ init(_Settings) ->
   {ok, 200, _Headers, ResponseList} = slacker_auth:test("xoxb-195719487908-v64wxj7ZH0j0rlT3zNf2zIn8"),
   Response = maps:from_list(ResponseList),
   {ok, BotId} = maps:find(<<"user_id">>, Response),
-  State = #state{token = "xoxb-195719487908-v64wxj7ZH0j0rlT3zNf2zIn8", botIdPattern = binary:compile_pattern(BotId), botId = BotId},
+  {ok, BotName} = maps:find(<<"user">>, Response),
+  State = #state{token = "xoxb-195719487908-v64wxj7ZH0j0rlT3zNf2zIn8", botIdPattern = binary:compile_pattern(BotId), botId = BotId, botName = BotName},
 
   {ok, State}.
 
@@ -82,17 +84,17 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 %%-----------------------------------------------------------------------------
 %% Types of available messages to treat
 %%-----------------------------------------------------------------------------
-handle_command({Text, Channel, User}, #state{botId = BotID, token = Token} = State) ->
+handle_command({Text, Channel, User}, #state{botId = BotID, token = Token, botName = BotName} = State) ->
   {ok, Regex} = re:compile(list_to_binary([<<"^<@">>, BotID, <<"> (?<Command>.*)">>])),
   Result = re:run(Text, Regex, [{capture, all_names, binary}]),
 
   case Result of
     {match, [Command]} ->
       case Command of
-        <<"help">> -> send_help(Channel, Token);
-        _Else -> send_unknown_command(Channel, User, Token)
+        <<"help">> -> send_help(Channel, Token, BotName);
+        _Else -> send_unknown_command(Channel, User, Token, BotName)
       end;
-    _Else -> send_unknown_command(Channel, User, Token)
+    _Else -> send_unknown_command(Channel, User, Token, BotName)
   end.
 
 
@@ -103,30 +105,33 @@ handle_message({Message, Channel, User}, _State) ->
 %%-----------------------------------------------------------------------------
 %% RESPONSES to Slack
 %%-----------------------------------------------------------------------------
-send_unknown_command(Channel, User, Token) ->
+send_unknown_command(Channel, User, Token, BotName) ->
   slacker_chat:post_message(
     Token,
     Channel,
     list_to_binary([
       <<"Sorry <@">>,
-      User,+
-      <<">, I could not understand. Correct format is '@bbi-sentibot <command>'.
-      Please use @bbi-sentibot help for more information.">>
+      User,
+      <<">, I could not understand. Correct format is '@">>,
+      BotName,
+      <<" <command>'.\nPlease use '@">>,
+      BotName,
+      <<" help' for more information.">>
     ]),
-    % FIXME : allow to change name dynamically
-    [{username, "BBIS-Sentibot"}]
+    [{username, BotName}]
   ).
 
-send_help(Channel, Token) ->
+send_help(Channel, Token, BotName) ->
   slacker_chat:post_message(
     Token,
     Channel,
     list_to_binary([
-      <<"@bbi-sentibot command <parameters>\n\n Available Commands:">>,
+      <<"@">>,
+      BotName,
+      <<" command <parameters>\n\n Available Commands:">>,
       help_fm(<<"help">>, <<"Display this help message">>)
     ]),
-    % FIXME : allow to change name dynamically
-    [{username, "BBIS-Sentibot"}]).
+    [{username, BotName}]).
 
 
 %%-----------------------------------------------------------------------------
