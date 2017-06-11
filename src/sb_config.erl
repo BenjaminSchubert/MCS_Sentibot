@@ -10,7 +10,7 @@
 
 
 %% API
--export([get_slack_token/0, get_bot_name/0]).
+-export([get_slack_token/0]).
 
 
 get_slack_token() -> get_value(slack_token).

@@ -76,6 +76,7 @@ handle_info(_Message, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
+
 %%=============================================================================
 %% INTERNAL API
 %%=============================================================================
@@ -98,43 +99,44 @@ handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName}) 
 
 
 handle_message({Message, Channel, User}, _State) ->
-  lager:info("RECEIVED MESSAGE: ~p", [Message]).
+  Result = sb_sentiment_analysis:analyze(Message, User),
+  case Result of
+    {ok, Sentiment} -> send_message(Channel, Sentiment);
+    noop -> ok
+  end.
 
 
 %%-----------------------------------------------------------------------------
 %% RESPONSES to Slack
 %%-----------------------------------------------------------------------------
-send_unknown_command(Channel, User, BotName) ->
-  slacker_chat:post_message(
-    sb_config:get_slack_token(),
-    Channel,
-    list_to_binary([
-      <<"Sorry <@">>,
-      User,
-      <<">, I could not understand. Correct format is '@">>,
-      BotName,
-      <<" <command>'.\nPlease use '@">>,
-      BotName,
-      <<" help' for more information.">>
-    ]),
-    [{as_user, true}]
-  ).
+send_unknown_command(Channel, User, BotName) -> send_message(
+  Channel,
+  list_to_binary([
+    <<"Sorry <@">>,
+    User,
+    <<">, I could not understand. Correct format is '@">>,
+    BotName,
+    <<" <command>'.\nPlease use '@">>,
+    BotName,
+    <<" help' for more information.">>
+  ])
+).
 
-send_help(Channel, BotName) ->
-  slacker_chat:post_message(
-    sb_config:get_slack_token(),
-    Channel,
-    list_to_binary([
-      <<"@">>,
-      BotName,
-      <<" command <parameters>\n\n Available Commands:">>,
-      help_fm(<<"help">>, <<"Display this help message">>)
-    ]),
-    [{as_user, true}]
-  ).
+send_help(Channel, BotName) -> send_message(
+  Channel,
+  list_to_binary([
+    <<"@">>,
+    BotName,
+    <<" command <parameters>\n\n Available Commands:">>,
+    help_fm(<<"help">>, <<"Display this help message">>)
+  ])
+).
 
 
 %%-----------------------------------------------------------------------------
 %% HELPERS
 %%-----------------------------------------------------------------------------
 help_fm(Name, Msg) -> list_to_binary([<<"\n\t">>, Name, <<"\t\t">>, Msg]).
+
+send_message(Channel, Message) ->
+  slacker_chat:post_message(sb_config:get_slack_token(), Channel, Message, [{as_user, true}]).
