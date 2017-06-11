@@ -90,21 +90,28 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 %% Types of available messages to treat
 %%-----------------------------------------------------------------------------
 handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName}) ->
-  {ok, Regex} = re:compile(list_to_binary([<<"^<@">>, BotID, <<"> (?<Command>.+)">>])),
-  Result = re:run(Text, Regex, [{capture, all_names, binary}]),
+  {ok, Regex} = re:compile(<<"^<@", BotID/binary, "> (?<Command>.+)">>),
 
-  case Result of
+  case re:run(Text, Regex, [{capture, all_names, binary}]) of
     {match, [Command]} ->
-      SplittedCommand = split_on_space(Command),
-
-      case SplittedCommand of
-        error -> send_message(Channel, [<<"Sorry <@">>, User, <<">, I was unable to parse your command.">>]);
+      case split_on_space(Command) of
+        error -> send_message(Channel, <<"Sorry <@", User/binary, ">, I was unable to parse your command.">>);
         List ->
           case List of
             [<<"help">>] -> send_help(Channel, BotName);
             [<<"add">>, Tail, Sentiment] ->
               {ok, Sentiment} = sb_sentiment_analysis:add({Tail, Sentiment}),
-              send_message(Channel, [<<"New sentiment recognition added for ">>, Sentiment]);
+              send_message(Channel, <<"New sentiment recognition added for ", Sentiment/binary>>);
+            [<<"delete">>, IndexString] ->
+              try binary_to_integer(IndexString) of
+                Index ->
+                  case sb_sentiment_analysis:delete(Index) of
+                    {ok, {R, S}} -> send_message(Channel, <<R/binary, " -> ", S/binary, "has been deleted">>);
+                    out_of_bound -> send_message(Channel, <<(48 + Index), " is out of bound.">>)
+                  end
+              catch
+                error:badarg -> send_message(Channel, <<"<@", User/binary, ">, This is not an integer, I can't delete at this index !">>)
+              end;
             [<<"dump">>] ->
               {ok, Rules} = sb_sentiment_analysis:dump(),
               send_message(Channel, sb_utils:mapWithIndex(
@@ -113,7 +120,7 @@ handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName}) 
               ));
             [<<"save">>] ->
               ok = sb_sentiment_analysis:save(),
-              send_message(Channel, [<<"Rules successfully saved">>]);
+              send_message(Channel, <<"Rules successfully saved">>);
             _Else -> send_unknown_command(Channel, User, BotName)
           end
       end;

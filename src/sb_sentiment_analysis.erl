@@ -14,7 +14,7 @@
 }).
 
 %% public api
--export([analyze/2, add/1, dump/0, save/0]).
+-export([analyze/2, add/1, delete/1, dump/0, save/0]).
 
 %% otp api
 -export([start_link/0]).
@@ -28,6 +28,8 @@
 analyze(Message, User) -> gen_server:call(?MODULE, {analyze, Message, User}).
 
 add(Message) -> gen_server:call(?MODULE, {add, Message}).
+
+delete(Index) -> gen_server:call(?MODULE, {delete, Index}).
 
 dump() -> gen_server:call(?MODULE, dump).
 
@@ -54,6 +56,12 @@ init(_Settings) ->
 handle_call(save, _From, #state{sentiments = Sentiments} = State) ->
   dump_sentiments(Sentiments),
   {reply, ok, State};
+
+handle_call({delete, Index}, _From, #state{sentiments = Sentiments} = State) ->
+  case delete_sentiment(Index, Sentiments) of
+    out_of_bound -> {reply, out_of_bound, State};
+    {ok, NewSentiments, RemovedSentiment} -> {reply, {ok, RemovedSentiment}, State#state{sentiments = NewSentiments}}
+  end;
 
 
 handle_call(dump, _From, #state{sentiments = Sentiments} = State) ->
@@ -104,3 +112,16 @@ extract_sentiment(Message, [{Regexp, Sentiment} | Tail]) ->
     {match, _} -> {match, Sentiment};
     nomatch -> extract_sentiment(Message, Tail)
   end.
+
+
+delete_sentiment(Index, Sentiments) ->
+  case Index of
+    _ when Index < 0 -> out_of_bound;
+    _ -> delete_sentiment(Index, Sentiments, [])
+  end.
+
+delete_sentiment(_Index, [], _Acc) -> out_of_bound;
+
+delete_sentiment(0, [Head | Tail], Acc) -> {ok, lists:reverse(Acc) ++ Tail, Head};
+
+delete_sentiment(Index, [Head | Tail], Acc) -> delete_sentiment(Index - 1, Tail, [Head | Acc]).
