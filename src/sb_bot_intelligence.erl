@@ -96,14 +96,24 @@ handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName}) 
   case Result of
     {match, [Command]} ->
       SplittedCommand = split_on_space(Command),
-      lager:info("~p", [SplittedCommand]),
 
       case SplittedCommand of
         error -> send_message(Channel, [<<"Sorry <@">>, User, <<">, I was unable to parse your command.">>]);
-        [FirstValue | Tail] ->
-          case FirstValue of
-            <<"help">> -> send_help(Channel, BotName);
-            <<"sentiments">> -> handle_sentiments(Tail, Channel, User, BotName);
+        List ->
+          case List of
+            [<<"help">>] -> send_help(Channel, BotName);
+            [<<"add">>, Tail, Sentiment] ->
+              {ok, Sentiment} = sb_sentiment_analysis:add({Tail, Sentiment}),
+              send_message(Channel, [<<"New sentiment recognition added for ">>, Sentiment]);
+            [<<"dump">>] ->
+              {ok, Rules} = sb_sentiment_analysis:dump(),
+              send_message(Channel, sb_utils:mapWithIndex(
+                fun({R, Sentiment}, Index) -> <<(48 + Index), ": `", R/binary, "` -> ", Sentiment/binary, "\n">> end,
+                Rules
+              ));
+            [<<"save">>] ->
+              ok = sb_sentiment_analysis:save(),
+              send_message(Channel, [<<"Rules successfully saved">>]);
             _Else -> send_unknown_command(Channel, User, BotName)
           end
       end;
@@ -116,18 +126,6 @@ handle_message({Message, Channel, User}, _State) ->
   case Result of
     {ok, Sentiment} -> send_message(Channel, Sentiment);
     notfound -> ok
-  end.
-
-
-handle_sentiments(CommandList, Channel, User, BotName) ->
-  case CommandList of
-    [<<"add">>, Regex, Sentiment] ->
-      {ok, Sentiment} = sb_sentiment_analysis:add({Regex, Sentiment}),
-      send_message(Channel, [<<"New sentiment recognition added for ">>, Sentiment]);
-    [<<"save">>] ->
-      ok = sb_sentiment_analysis:save(),
-      send_message(Channel, [<<"Rules successfully saved">>]);
-    _Else -> send_unknown_command(Channel, User, BotName)
   end.
 
 
@@ -153,10 +151,9 @@ send_help(Channel, BotName) -> send_message(
     <<"@">>,
     BotName,
     <<" command <parameters>\n\n Available Commands:">>,
-    help_fm(<<"help">>, <<"Display this help message">>),
-    help_fm(<<"sentiments">>, <<"">>),
-    help_sub_fm(<<"insert [regex] [sentiment]">>, <<"Add a new sentiment recognition at the end of the list">>),
-    help_sub_fm(<<"save">>, <<"Save the current rules">>)
+    help_fm(<<"*help*">>, <<"Display this help message">>),
+    help_fm(<<"*insert* _regex_ _sentiment_">>, <<"Add a new sentiment recognition at the end of the list">>),
+    help_fm(<<"*save*">>, <<"Save the current rules">>)
   ]
 ).
 
@@ -165,7 +162,6 @@ send_help(Channel, BotName) -> send_message(
 %% HELPERS
 %%-----------------------------------------------------------------------------
 help_fm(Name, Msg) -> list_to_binary([<<"\n\t">>, Name, <<"\t\t">>, Msg]).
-help_sub_fm(Name, Msg) -> list_to_binary([<<"\n\t\t">>, Name, <<"\t">>, Msg]).
 
 send_message(Channel, [_Head | _Tail] = List) ->
   send_message(Channel, list_to_binary(List));
@@ -185,7 +181,7 @@ join_on_quotation_mark([], Acc) -> lists:reverse(Acc);
 
 join_on_quotation_mark([<<"\"", Head/binary>> | Tail], Acc) ->
   case binary:last(Head) of
-    $" -> join_on_quotation_mark(Tail, [Head | Acc]);
+    $" -> join_on_quotation_mark(Tail, [binary:part(Head, 0, byte_size(Head) - 1) | Acc]);
     _Else ->  consume_until_quotation_mark(Tail, Acc, [Head])
   end;
 

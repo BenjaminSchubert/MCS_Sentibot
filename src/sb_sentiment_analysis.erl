@@ -14,7 +14,7 @@
 }).
 
 %% public api
--export([analyze/2, add/1, save/0]).
+-export([analyze/2, add/1, dump/0, save/0]).
 
 %% otp api
 -export([start_link/0]).
@@ -25,16 +25,13 @@
 %%=============================================================================
 %% Public API
 %%=============================================================================
-analyze(Message, User) ->
-  gen_server:call(?MODULE, {analyze, Message, User}).
+analyze(Message, User) -> gen_server:call(?MODULE, {analyze, Message, User}).
 
+add(Message) -> gen_server:call(?MODULE, {add, Message}).
 
-add(Message) ->
-  gen_server:call(?MODULE, {add, Message}).
+dump() -> gen_server:call(?MODULE, dump).
 
-
-save() ->
-  gen_server:call(?MODULE, save).
+save() -> gen_server:call(?MODULE, save).
 
 
 %%=============================================================================
@@ -57,6 +54,10 @@ init(_Settings) ->
 handle_call(save, _From, #state{sentiments = Sentiments} = State) ->
   dump_sentiments(Sentiments),
   {reply, ok, State};
+
+
+handle_call(dump, _From, #state{sentiments = Sentiments} = State) ->
+  {reply, {ok, Sentiments}, State};
 
 
 handle_call({add, {Regex, Sentiment}}, _From, #state{sentiments = Sentiments} = State) ->
