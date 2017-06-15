@@ -1,6 +1,9 @@
 # MCS_Sentibot
-A slack bot reacting to messages expressing emotions.
+A slack bot reacting to messages expressing sentiments. With a list of known entries, the bot can "tell" in what state of mind a given user is and writes a message describing his current sentiment. 
 
+The entries are a regex and its corresponding emotion. For example, if the bot has the regex `"I('m|am) happy"` that is mapped to the emotion `happy`, when any user writes `I'm happy` or `I am happy`, the bot will send a message containing `@USERNAME is happy`, with `USERNAME` being the username of the user.
+
+The entries of the bot are fully configurable with commands. The complete list can be found in the `Usage` section.
 
 ### Requirements
 - Erlang
