@@ -53,6 +53,7 @@ start_link() ->
 %%=============================================================================
 
 init(_Settings) ->
+  process_flag(trap_exit, true),
   {ok, Sentiments} = load_sentiments(),
   {ok, #state{sentiments = Sentiments}}.
 
@@ -94,7 +95,10 @@ handle_call({analyze, Message, User}, _From, #state{sentiments = Sentiments} = S
 
 handle_cast(_Request, State) -> {noreply, State}.
 handle_info(_Message, State) -> {noreply, State}.
-terminate(_Reason, _State) -> ok.
+terminate(_Reason, _State) ->
+  lager:error(<<"[BIBI-BOT][Sentiment analysis] Shutting down... Reason is: ~p">>, [_Reason]),
+  sb_utils:flush(), %% empty mailbox in case there is still a message upon shutdown
+  ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
