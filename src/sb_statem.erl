@@ -112,16 +112,7 @@ connect_websocket(info, {gun_ws, _WsPid, {text, Body}}, State) ->
 
 %% @doc Handle the messages coming from the websocket.
 handle_message(info, {gun_ws, _WsPid, {text, Body}}, State) ->
-  Message = decode(Body),
-  {ok, Type} = maps:find(type, Message),
-  case Type of
-    <<"desktop_notification">> -> do_nothing;
-    <<"reconnect_url">> -> do_nothing;
-    <<"presence_change">> -> do_nothing;
-    <<"user_typing">> -> do_nothing;
-    <<"message">> -> sb_bot_intelligence:handle(Message);
-    _Else -> lager:info("Unknown Message with type ~p: ~p", [Type, Message])
-  end,
+  sb_bot_intelligence:handle(Body),
   {keep_state, State}.
 
 

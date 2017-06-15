@@ -31,8 +31,13 @@
 %%=============================================================================
 
 % FIXME: document
-handle(Message) ->
-  gen_server:cast(?MODULE, {message, Message}).
+handle(Body) ->
+  Message = jsx:decode(Body, [return_maps, {labels, atom}]),
+  {ok, Type} = maps:find(type, Message),
+  case Type of
+    <<"message">> -> gen_server:cast(?MODULE, {message, Message});
+    _Else -> do_nothing
+  end.
 
 
 %%=============================================================================
