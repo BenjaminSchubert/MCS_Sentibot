@@ -7,7 +7,7 @@ A slack bot reacting to messages expressing emotions.
 - Rebar3
 - A Slack token for the server you want to run the bot on.
 
-## Getting your Slack token
+#### Getting your Slack token
 1. Go to the Slack website and select your server.
 2. Go to the "manage" page on the top menu. From there, you can go to "cutom integration" on the menu on the left, and then select "bots".
 3. Add a configuration, set the username of the bot and you can get your token.
