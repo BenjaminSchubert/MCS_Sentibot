@@ -1,8 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @author Benjamin Schubert, Basile Vu, Ioannis Noukakis and Sarra Berich
-%%% @doc
-%%% FIXME
-%%% @end
+%%% @doc This module offers various helpers to handle lists
 %%%-------------------------------------------------------------------
 -module(sb_list).
 
@@ -23,6 +21,9 @@ mapWithIndex(Function, [Head | Tail], Acc, Index) ->
   mapWithIndex(Function, Tail, [Function(Head, Index) | Acc], Index + 1).
 
 
+%% @spec (Index, List) -> List
+%%
+%% @doc remove the element at Index from the given list
 remove_element(Index, List) ->
   case Index of
     _ when Index < 0 -> out_of_bound;
@@ -36,6 +37,9 @@ remove_element(0, [Head | Tail], Acc) -> {ok, lists:reverse(Acc) ++ Tail, Head};
 remove_element(Index, [Head | Tail], Acc) -> remove_element(Index - 1, Tail, [Head | Acc]).
 
 
+%% @spec (Element, Index, List)
+%%
+%% @dpc Add the given Element at the given Index in the List.
 insert_element(Element, Index, List) ->
   case Index of
     _ when Index < 0 -> out_of_bound;
