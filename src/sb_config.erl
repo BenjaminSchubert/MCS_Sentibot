@@ -20,5 +20,9 @@ get_sentiment_file() -> get_value(sentiment_file).
 
 %% internal helpers
 get_value(Atom) ->
-  {ok, Value} = application:get_env(?APP, Atom),
-  Value.
+  Result = application:get_env(?APP, Atom),
+
+  case Result of
+    {ok, Value} -> Value;
+    _Else -> lager:error("No configuration information found for \"~p\"", [Atom])
+  end.
