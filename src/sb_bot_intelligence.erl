@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author Benjamin Schubert, Basile Vu, Ioannis Noukakis and Sarra Berich
 %%% @doc
-%%% This modules handles the processing part of the bot.
+%%% Command handling and reaction to user messages. This is where the behavior the bot is defined.
 %%% @end
 %%%-------------------------------------------------------------------
 -module(sb_bot_intelligence).
@@ -33,9 +33,14 @@
 %% @doc handles a message. If the message is for the bot it will parse it and do the action that is mapped with such message
 %% If not the sentimental treatment is applied.
 %%
-%% The first parameter is a message (string).
-handle(Message) ->
-  gen_server:cast(?MODULE, {message, Message}).
+%% The parameter is a message (Html Body).
+handle(Body) ->
+  Message = jsx:decode(Body, [return_maps, {labels, atom}]),
+  {ok, Type} = maps:find(type, Message),
+  case Type of
+    <<"message">> -> gen_server:cast(?MODULE, {message, Message});
+    _Else -> do_nothing
+  end.
 
 
 %%=============================================================================
@@ -135,7 +140,7 @@ handle_message({Message, Channel, User}, #state{stateOfMind = StateOfMind} = Sta
   case Result of
     {ok, Sentiment} ->
       NewStateOfMind = add_to_channel_state(Channel, {User, Sentiment}, StateOfMind),
-      send_message(Channel, <<"<@", User/binary, "> is", Sentiment/binary, ".">>),
+      send_message(Channel, <<"<@", User/binary, "> is ", Sentiment/binary, ".">>),
       State#state{stateOfMind = NewStateOfMind};
     notfound -> State
   end.
@@ -196,7 +201,7 @@ handle_command([<<"delete">>, IndexString], Channel, User, _BotName) ->
 %% The fourth parameter is a bot name (string)
 handle_command([<<"dump">>], Channel, _User, _BotName) ->
   {ok, Rules} = sb_sentiment_analysis:dump(),
-  send_message(Channel, sb_utils:mapWithIndex(
+  send_message(Channel, sb_list:mapWithIndex(
     fun({R, Sentiment}, Index) -> <<(48 + Index), ". `", R/binary, "` -> ", Sentiment/binary, "\n">> end,
     Rules
   ));
@@ -272,7 +277,7 @@ handle_command(_List, Channel, User, BotName) ->
 %% The second parameter is a StateOfMind (string)
 show_state(Channel, StateOfMind) ->
   case maps:find(Channel, StateOfMind) of
-    error -> send_message(Channel, <<"Unfortunately, Only Psychopats are in this Channel. Nobody has a state of mind">>);
+    error -> send_message(Channel, <<"Unfortunately, Only Psychopats are in this Channel. Nobody has a state of mind.">>);
     {ok, Value} ->
       send_message(Channel, lists:map(
         fun({User, Sentiment}) -> <<"<@", User/binary, "> is ", Sentiment/binary, ".\n">> end,

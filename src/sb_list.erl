@@ -6,7 +6,21 @@
 %%%-------------------------------------------------------------------
 -module(sb_list).
 
--export([insert_element/3, remove_element/2]).
+-export([insert_element/3, remove_element/2, mapWithIndex/2]).
+
+
+%% @spec (Function, List) -> List
+%%
+%% @doc Applies a function on each element of the given list, along with its the index.
+%%
+%% The first parameter is a function that takes two parameters, a value and its index.
+%% The second parameter is the list containing the values.
+mapWithIndex(Function, List) -> mapWithIndex(Function, List, [], 0).
+
+mapWithIndex(_Function, [], Acc, _Index) -> lists:reverse(Acc);
+
+mapWithIndex(Function, [Head | Tail], Acc, Index) ->
+  mapWithIndex(Function, Tail, [Function(Head, Index) | Acc], Index + 1).
 
 
 remove_element(Index, List) ->
