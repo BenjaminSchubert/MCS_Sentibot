@@ -48,6 +48,8 @@ start_link() ->
 %%=============================================================================
 
 init(_Settings) ->
+
+  process_flag(trap_exit, true),
   {ok, 200, _Headers, ResponseList} = slacker_auth:test(sb_config:get_slack_token()),
   Response = maps:from_list(ResponseList),
   {ok, BotId} = maps:find(<<"user_id">>, Response),
@@ -80,7 +82,10 @@ handle_cast({message, Message}, #state{botIdPattern = Pattern} = State) ->
 
 handle_call(_Request, _From, State) -> {noreply, State}.
 handle_info(_Message, State) -> {noreply, State}.
-terminate(_Reason, _State) -> ok.
+terminate(_Reason, _State) ->
+  io:format("~p~n", ["[BIBI-BOT][intelligence] Shutting down... Reason is: ", _Reason]),
+  sb_utils:flush(), %% empty mailbox in case there is still a message upon shutdown
+  ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
