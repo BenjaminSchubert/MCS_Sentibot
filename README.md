@@ -6,7 +6,7 @@ The entries are a regex and its corresponding emotion. For example, if the bot h
 The entries of the bot are fully configurable with commands. The complete list can be found in the `Usage` section.
 
 ### Requirements
-- Erlang
+- Erlang 19.X
 - Rebar3
 - A Slack token for the server you want to run the bot on.
 
