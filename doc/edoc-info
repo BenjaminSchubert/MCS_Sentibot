@@ -1,0 +1,4 @@
+%% encoding: UTF-8
+{application,sentibot}.
+{modules,[sb_bot_intelligence,sb_config,sb_list,sb_sentiment_analysis,
+          sb_statem,sb_utils,sentibot_app,sentibot_sup]}.
