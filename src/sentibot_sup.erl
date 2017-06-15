@@ -28,6 +28,13 @@ start_link() ->
 %% Supervisor callbacks
 %%====================================================================
 
+%% @doc init callback to initialize the supervisor. This supervisor
+%% manages three childs:
+%%    - sb_sentiment_analysis
+%%    - sb_bot_intelligence
+%%    - child(sb_statem)
+%%
+%% The first parameter is the arguments of the application (term()).
 -spec init(Args :: term()) -> {ok, {supervisor:sup_flags(), [supervisor:child_spec()]}}.
 init(_Args) ->
   application:ensure_all_started(gun),
