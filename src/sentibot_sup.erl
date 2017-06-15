@@ -40,7 +40,7 @@ init(_Args) ->
   application:ensure_all_started(gun),
   application:ensure_all_started(slacker),
 
-  SupFlags = #{strategy => one_for_one, intensity => 0, period => 5},
+  SupFlags = #{strategy => one_for_one, intensity => 5, period => 5},
 
   {ok, {SupFlags, [
     child(sb_sentiment_analysis),

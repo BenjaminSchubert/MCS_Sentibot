@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author Benjamin Schubert, Basile Vu, Ioannis Noukakis and Sarra Berich
 %%% @doc
-%%% FIXME
+%%% Command handling and reaction to user messages. This is where the behavior the bot is defined.
 %%% @end
 %%%-------------------------------------------------------------------
 -module(sb_bot_intelligence).
@@ -119,7 +119,7 @@ handle_message({Message, Channel, User}, #state{stateOfMind = StateOfMind} = Sta
   case Result of
     {ok, Sentiment} ->
       NewStateOfMind = add_to_channel_state(Channel, {User, Sentiment}, StateOfMind),
-      send_message(Channel, <<"<@", User/binary, "> is", Sentiment/binary, ".">>),
+      send_message(Channel, <<"<@", User/binary, "> is ", Sentiment/binary, ".">>),
       State#state{stateOfMind = NewStateOfMind};
     notfound -> State
   end.
@@ -195,7 +195,7 @@ handle_command(_List, Channel, User, BotName) ->
 
 show_state(Channel, StateOfMind) ->
   case maps:find(Channel, StateOfMind) of
-    error -> send_message(Channel, <<"Unfortunately, Only Psychopats are in this Channel. Nobody has a state of mind">>);
+    error -> send_message(Channel, <<"Unfortunately, Only Psychopats are in this Channel. Nobody has a state of mind.">>);
     {ok, Value} ->
       send_message(Channel, lists:map(
         fun({User, Sentiment}) -> <<"<@", User/binary, "> is ", Sentiment/binary, ".\n">> end,
