@@ -145,7 +145,7 @@ handle_command([<<"delete">>, IndexString], Channel, User, _BotName) ->
 
 handle_command([<<"dump">>], Channel, _User, _BotName) ->
   {ok, Rules} = sb_sentiment_analysis:dump(),
-  send_message(Channel, sb_utils:mapWithIndex(
+  send_message(Channel, sb_list:mapWithIndex(
     fun({R, Sentiment}, Index) -> <<(48 + Index), ". `", R/binary, "` -> ", Sentiment/binary, "\n">> end,
     Rules
   ));
