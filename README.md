@@ -5,6 +5,8 @@ The entries are a regex and its corresponding emotion. For example, if the bot h
 
 The entries of the bot are fully configurable with commands. The complete list can be found in the `Usage` section.
 
+This project was made in the context of the MCS course at HEIG-VD.
+
 ### Requirements
 - Erlang 19.X
 - Rebar3
@@ -44,3 +46,4 @@ If you are interested in the API of this project, you can generate the documenta
 1. Go to the root of this project.
 2. `$ rebar3 edoc`
 3. A documentation will be generated into the `doc` directory.
+
