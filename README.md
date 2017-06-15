@@ -38,3 +38,9 @@ Available Commands:
     state                          Show the state of mind of peoples in the channel
 ```
 Where `BOT_USERNAME` is the username of the bot and `COMMAND` one of the listed commands.
+
+## Documentation
+If you are interested in the API of this project, you can generate the documentation by doing the following:
+1. Go to the root of this project.
+2. `$ rebar3 edoc`
+3. A documentation will be generated into the `doc` directory.
