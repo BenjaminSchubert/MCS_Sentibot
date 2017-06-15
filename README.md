@@ -18,3 +18,20 @@ A slack bot reacting to messages expressing emotions.
 3. `$ rebar3 auto`: it will download the dependencies and start the bot.
 4. The bot joins the server. By default, the bot isn't in any channel. To invite it from the app, got to `channel settings > invite team members to join` and enter the bot username. It will join the channel.
 5. You're done! You can now interact with the bot.
+
+## Usage
+To interact with the bot, you can use the following comands:
+```
+@BOT_USERNAME COMMAND [PARAMETERS]...
+
+Available Commands:
+    help                           Display this help message
+    add REGEX SENTIMENT            Add a new sentiment recognition at the begining of the list
+    delete INDEX                   Delete the rule at the given index
+    dump                           Dump the current rules
+    insert INDEX REGEX SENTIMENT   Add a new sentiment recognition at the given INDEX
+    move OLD_INDEX NEW_INDEX       Move the rule from OLD_INDEX to NEW_INDEX
+    save                           Save the current rules
+    state                          Show the state of mind of peoples in the channel
+```
+Where `BOT_USERNAME` is the username of the bot and `COMMAND` one of the listed commands.
