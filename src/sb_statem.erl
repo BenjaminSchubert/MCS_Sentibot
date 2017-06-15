@@ -42,6 +42,7 @@ callback_mode() ->state_functions.
 
 
 init(_Settings) ->
+  process_flag(trap_exit, true),
   gen_statem:cast(self(), connect),
   {ok, disconnected, #state{}}.
 
@@ -128,3 +129,9 @@ handle_message(info, {gun_ws, _WsPid, {text, Body}}, State) ->
 %% FIXME : document
 decode(Message) -> jsx:decode(Message, [return_maps, {labels, atom}]).
 die(Message) -> exit(whereis(?MODULE), Message).
+
+terminate(_Reason, #state{wsPid = WsPid, wsUrl = WsUrl} = State, _Data) ->
+  lager:error(<<"[BIBI-BOT][statem] Shutting down... Reason is: ~p">>, [_Reason]),
+  gun:shutdown(WsPid),
+  sb_utils:flush(), %% empty mailbox in case there is still a message upon shutdown
+  ok.
