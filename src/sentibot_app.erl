@@ -12,8 +12,6 @@
 
 
 start(_Type, _StartArgs) ->
-  io:format("~p~n", ["TEST2"]),
-  io:format("~p~n", [self()]),
   lager:start(),
   {ok, Sup} = sentibot_sup:start_link(),
   {ok, Sup}.
