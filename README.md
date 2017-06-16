@@ -5,7 +5,7 @@ The entries are a regex and its corresponding emotion. For example, if the bot h
 
 The entries of the bot are fully configurable with commands. The complete list can be found in the `Usage` section.
 
-This project was made in the context of the MCS course at HEIG-VD.
+This project was made in the context of the MCS course at HEIG-VD by [Sarra Berich](https://github.com/sarrab), [Ioannis Noukakis](https://github.com/ioannisNoukakis), [Benjamin Schubert](https://github.com/BenjaminSchubert) and [Basile Vu](https://github.com/flagoul).
 
 ### Requirements
 - Erlang 19.X
