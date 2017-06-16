@@ -30,6 +30,7 @@
 %% OTP API
 %% FIXME: document
 %%====================================================================
+
 start_link() ->
   gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -50,7 +51,6 @@ init(_Settings) ->
 %%====================================================================
 %% STATES
 %%====================================================================
-
 
 %% @doc Start a connection to Slack's servers and move to "get_websocket_url".
 disconnected(cast, connect, State) ->
@@ -117,10 +117,16 @@ handle_message(info, {gun_ws, _WsPid, {text, Body}}, State) ->
 
 
 %% INTERNAL API
-%% FIXME : document
+
+%% @doc decode a json message.
 decode(Message) -> jsx:decode(Message, [return_maps, {labels, atom}]).
+
+
+%% @doc kill the processus.
 die(Message) -> exit(whereis(?MODULE), Message).
 
+
+%% @doc cleanup resources on termination.
 terminate(_Reason, #state{wsPid = WsPid, wsUrl = WsUrl} = State, _Data) ->
   lager:error(<<"[BIBI-BOT][statem] Shutting down... Reason is: ~p">>, [_Reason]),
   gun:shutdown(WsPid),

@@ -50,5 +50,7 @@ init(_Args) ->
 
 
 %% private API
+
+%% @doc format the child for a supervisor
 child(Module) ->
   {Module, {Module, start_link, []}, permanent, 2000, worker, [Module]}.

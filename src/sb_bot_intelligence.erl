@@ -92,11 +92,14 @@ handle_cast({message, Message}, #state{botIdPattern = Pattern} = State) ->
       end
   end.
 
+
 %% @doc default behavior
 handle_call(_Request, _From, State) -> {noreply, State}.
 
+
 %% @doc default behavior
 handle_info(_Message, State) -> {noreply, State}.
+
 
 %% @doc termination handler. Prints an error message, clean the mailbox and let the program exit.
 %%
@@ -105,6 +108,9 @@ terminate(_Reason, _State) ->
   lager:error(<<"[BIBI-BOT][intelligence] Shutting down... Reason is: ~p">>, [_Reason]),
   sb_utils:flush(), %% empty mailbox in case there is still a message upon shutdown
   ok.
+
+
+%% @doc default behavior on code change, don't do anything.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
@@ -132,6 +138,7 @@ handle_command({Text, Channel, User}, #state{botId = BotID, botName = BotName, s
     _Else -> send_unknown_command(Channel, User, BotName)
   end.
 
+
 %% @doc handles the sentiment process.
 %%
 %% The first parameter is a text, a channel, and the user that wrote the text on that particular channel.
@@ -157,6 +164,7 @@ handle_message({Message, Channel, User}, #state{stateOfMind = StateOfMind} = Sta
 %% The first parameter is a text, a channel and a bot name (string, string, string)
 handle_command([<<"help">>], Channel, _User, BotName) -> send_help(Channel, BotName);
 
+
 %% @doc performs and gets the result of the add command.
 %%
 %% The first parameter is a regex and a sentiment
@@ -169,6 +177,7 @@ handle_command([<<"help">>], Channel, _User, BotName) -> send_help(Channel, BotN
 handle_command([<<"add">>, Regex, Sentiment], Channel, _User, _BotName) ->
   {ok, Sentiment} = sb_sentiment_analysis:add({Regex, Sentiment}),
   send_message(Channel, <<"New sentiment recognition added for ", Sentiment/binary>>);
+
 
 %% @doc performs and gets the result of the delete command.
 %%
@@ -190,6 +199,7 @@ handle_command([<<"delete">>, IndexString], Channel, User, _BotName) ->
     error:badarg -> send_message(Channel, <<"<@", User/binary, ">, This is not an integer, I can't delete at this index !">>)
   end;
 
+
 %% @doc performs and gets the result of the delete command.
 %%
 %% The first parameter is an indexString (int)
@@ -205,6 +215,7 @@ handle_command([<<"dump">>], Channel, _User, _BotName) ->
     fun({R, Sentiment}, Index) -> <<(48 + Index), ". `", R/binary, "` -> ", Sentiment/binary, "\n">> end,
     Rules
   ));
+
 
 %% @doc performs and gets the result of the insert command.
 %%
@@ -228,6 +239,7 @@ handle_command([<<"insert">>, IndexString, Regex, Sentiment], Channel, User, _Bo
   catch
     error:badarg -> send_invalid_integer(Channel, User, IndexString)
   end;
+
 
 %% @doc performs and gets the result of the move command.
 %%
@@ -254,6 +266,7 @@ handle_command([<<"move">>, OldIndexString, NewIndexString], Channel, User, _Bot
     error:badarg -> send_invalid_integer(Channel, User, OldIndexString)
   end;
 
+
 %% @doc performs and gets the result of the save command.
 %%
 %% The first parameter is a channel (string)
@@ -264,6 +277,7 @@ handle_command([<<"move">>, OldIndexString, NewIndexString], Channel, User, _Bot
 handle_command([<<"save">>], Channel, _User, _BotName) ->
   ok = sb_sentiment_analysis:save(),
   send_message(Channel, <<"Rules successfully saved">>);
+
 
 %% @doc default behavior
 handle_command(_List, Channel, User, BotName) ->
@@ -285,6 +299,7 @@ show_state(Channel, StateOfMind) ->
       ))
   end.
 
+
 %%-----------------------------------------------------------------------------
 %% RESPONSES to Slack
 %%-----------------------------------------------------------------------------
@@ -301,6 +316,7 @@ send_invalid_integer(Channel, User, Value) -> send_message_to(
   User,
   <<"'", Value/binary, "' is not a valid integer">>
 ).
+
 
 %% @doc sends an message to a user
 %%
@@ -335,6 +351,7 @@ send_unknown_command(Channel, User, BotName) -> send_message(
   ]
 ).
 
+
 %% @doc sends an help message.
 %%
 %% The first parameter is a channel (string)
@@ -361,6 +378,7 @@ send_help(Channel, BotName) -> send_message(
 %%-----------------------------------------------------------------------------
 %% HELPERS
 %%-----------------------------------------------------------------------------
+
 %% @doc sends a message to everyone on this channel
 send_message(Channel, [_Head | _Tail] = List) ->
   send_message(Channel, list_to_binary(List));
@@ -368,10 +386,12 @@ send_message(Channel, [_Head | _Tail] = List) ->
 send_message(Channel, Message) ->
   slacker_chat:post_message(sb_config:get_slack_token(), Channel, Message, [{as_user, true}]).
 
+
 %% @doc helper that splits a string when spaces are encountered
 split_on_space(String) ->
   Split = re:split(String, <<" ">>),
   join_on_quotation_mark(Split).
+
 
 %% @doc join a list on quotation marks
 join_on_quotation_mark(L) -> join_on_quotation_mark(L, []).
@@ -386,6 +406,7 @@ join_on_quotation_mark([<<"\"", Head/binary>> | Tail], Acc) ->
 
 join_on_quotation_mark([Head | Tail], Acc) -> join_on_quotation_mark(Tail, [Head | Acc]).
 
+
 %% @doc consume a list until a quotation mark is encountered
 consume_until_quotation_mark([], _Acc, _Value) -> error;
 
@@ -397,6 +418,7 @@ consume_until_quotation_mark([Head | Tail], Acc, Value) ->
     );
     _Else -> consume_until_quotation_mark(Tail, Acc, [Head, <<" ">> | Value])
   end.
+
 
 %% @doc adds a state to a channel.
 add_to_channel_state(Channel, {User, Sentiment}, StateOfMind) ->

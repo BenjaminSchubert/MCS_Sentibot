@@ -13,8 +13,11 @@
 -export([get_slack_token/0, get_sentiment_file/0]).
 
 
+%% @doc get the slack authentication token.
 get_slack_token() -> get_value(slack_token).
 
+
+%% @doc get the path to the sentiment file.
 get_sentiment_file() -> get_value(sentiment_file).
 
 

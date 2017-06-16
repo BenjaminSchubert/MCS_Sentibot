@@ -9,6 +9,8 @@
 %% API
 -export([flush/0]).
 
+
+%% @doc flush the message queue.
 flush() ->
   receive
     _ -> flush()

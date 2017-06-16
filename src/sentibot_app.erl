@@ -21,6 +21,7 @@ start(_Type, _StartArgs) ->
   {ok, Sup} = sentibot_sup:start_link(),
   {ok, Sup}.
 
+
 %% @doc stops this application
 %%
 %% The first parameter is the state of the application.
