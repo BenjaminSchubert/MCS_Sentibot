@@ -39,7 +39,7 @@ remove_element(Index, [Head | Tail], Acc) -> remove_element(Index - 1, Tail, [He
 
 %% @spec (Element, Index, List)
 %%
-%% @dpc Add the given Element at the given Index in the List.
+%% @doc Add the given Element at the given Index in the List.
 insert_element(Element, Index, List) ->
   case Index of
     _ when Index < 0 -> out_of_bound;
